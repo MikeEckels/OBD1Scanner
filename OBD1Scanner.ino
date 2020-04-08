@@ -36,42 +36,50 @@
   
   void processData()
   {
-    unsigned char ignore;
     float temp;
-    
-    // Calculate coolant temperature C
-    temp = (float)dataStream[4 + payloadOffset] * 0.75f - 40.0f;
-    softSerial.print(temp );
-    softSerial.print("\t");
 
-    // Calculate coolant temperature F
-    temp = (float)dataStream[4 + payloadOffset] * 1.35f - 40.0f;
-    softSerial.print(temp);
-    softSerial.print("\t");
-    
-    // Calculate RPM
-    temp = dataStream[23 + payloadOffset] * 10;
-    softSerial.print(temp );
+     // Calculate RPM
+    temp = dataStream[RPM_MSB + payloadOffset];
+    temp += dataStream[RPM_LSB + payloadOffset] * 10;
+    softSerial.print((String)"RPM: " + temp);
     softSerial.print("\t");
 
     // Calculate MPH
-    temp = dataStream[9 + payloadOffset];
-    softSerial.print(temp );
+    temp = dataStream[VSS_MPH + payloadOffset];
+    softSerial.print((String)"MPH: " + temp);
     softSerial.print("\t");
   
-    // Calculate Throttle Position Sensor (TPS) percent
-    temp = dataStream[7 + payloadOffset];
-    softSerial.print(temp );
+    // Calculate Throttle position sensor percent
+    temp = dataStream[TPS_P + payloadOffset];
+    softSerial.print((String)"TPS %: " + temp);
     softSerial.print("\t");
-  
-    // Calculate Manifold Air Pressure (MAP)
-    temp = (float)(dataStream[8 + payloadOffset] * 0.5f);
-    softSerial.print(temp );
+
+    // Calculate Manifold air pressure
+    temp = (float)(dataStream[MAP_KPA + payloadOffset] * 0.5f);
+    softSerial.print((String)"MAP Kpa: " + temp);
+    softSerial.print("\t");
+
+    // Calculate Air fuel reatio target
+    temp = dataStream[AFR_TARGET + paylaodOffset]
+    softSerial.print((String)"AFR Target: " + temp) / 10.0f;
+    softSerial.print("\t");
+
+    temp = dataStream[RICH_LEAN + payloadOffset]
+    softSerial.print((String)"Rich/Lean: " + temp)
+    
+    // Calculate coolant temperature C
+    temp = (float)dataStream[CTS + payloadOffset] * 0.75f - 40.0f;
+    softSerial.print((String)"CTS C: " + temp);
+    softSerial.print("\t");
+
+    // Calculate coolant temperature F
+    temp = (float)dataStream[CTS + payloadOffset] * 1.35f - 40.0f;
+    softSerial.print((String)"CTS F: " + temp);
     softSerial.print("\t");
 
     // Calculate Battery voltage
-    temp = (float)dataStream[5 + payloadOffset] / 10.0f;
-    softSerial.print(temp);
+    temp = (float)dataStream[BATT_V + payloadOffset] / 10.0f;
+    softSerial.print((String)"Batt V: " + temp);
     softSerial.println();
   
   }
@@ -81,7 +89,7 @@
     unsigned int watchdog = 0;
   
     digitalWrite(rxControl, HIGH);
-    serialWriteBuff(clearCodes, clearCodesLength);
+    serialWriteBuff(mode1, mode1Length);
     digitalWrite(rxControl, LOW);
     
     for (unsigned char i = 0; i < dataStreamLength; i++) {
