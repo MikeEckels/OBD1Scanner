@@ -1,5 +1,4 @@
-  
-  #include "DataStreamDefs.h"
+#include "DataStreamDefs.h"
   #include <SoftwareSerial.h>
   
   int rxControl = 13;
@@ -60,12 +59,12 @@
     softSerial.print("\t");
 
     // Calculate Air fuel reatio target
-    temp = dataStream[AFR_TARGET + paylaodOffset]
+    temp = dataStream[AFR_TARGET + payloadOffset];
     softSerial.print((String)"AFR Target: " + temp) / 10.0f;
     softSerial.print("\t");
 
-    temp = dataStream[RICH_LEAN + payloadOffset]
-    softSerial.print((String)"Rich/Lean: " + temp)
+    temp = dataStream[RICH_LEAN + payloadOffset];
+    softSerial.print((String)"Rich/Lean: " + temp);
     
     // Calculate coolant temperature C
     temp = (float)dataStream[CTS + payloadOffset] * 0.75f - 40.0f;
