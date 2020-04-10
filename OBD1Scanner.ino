@@ -1,8 +1,9 @@
   #include "DataStreamDefs.h"
   #include <SoftwareSerial.h>
-  
+
   int rxControl = 13;
-  int payloadOffset = 3;
+  int payloadOffset =2;//3 in old design. Something weird with Serial1.readBytes();
+  bool dataReady = false;
   const int dataStreamLength = 44;
   unsigned int watchdogTimeout = 12000;
   
@@ -21,8 +22,7 @@
   SoftwareSerial softSerial(2, 3); // RX, TX
   
   void setup() {
-    //serialInit(baudRate);
-    Serial.begin(baudRate);
+    Serial1.begin(baudRate);
     softSerial.begin(8192);
     pinMode(rxControl, OUTPUT);
   }
@@ -38,18 +38,20 @@
     unsigned int watchdog = 0;
   
     digitalWrite(rxControl, HIGH);
-    Serial.write(mode1, mode1Length);
-    Serial.flush();
+    Serial1.write(mode1, mode1Length);
+    Serial1.flush();//Must finish sending all data before attempting to read
     digitalWrite(rxControl, LOW);
   
-      while ((Serial.available() == 0) && (watchdog < watchdogTimeout)) {
+      while ((Serial1.available() == 0) && (watchdog < watchdogTimeout)) {
         watchdog++;
       }
   
       if (watchdog >= watchdogTimeout) {
         softSerial.println("[!] Watchdog Timeout");
+        dataReady = false;
       } else {
-        Serial.readBytes(dataStream, dataStreamLength);
+          Serial1.readBytes(dataStream, dataStreamLength);
+          dataReady = true;
       }
     digitalWrite(rxControl, HIGH);
   }
@@ -57,105 +59,65 @@
   
   void processData()
   {
-    float temp;
-
-     // Calculate RPM
-    temp = dataStream[RPM_MSB + payloadOffset];
-    temp += dataStream[RPM_LSB + payloadOffset] * 10;
-    softSerial.print((String)"RPM: " + temp);
-    softSerial.print("\t");
-
-    // Calculate MPH
-    temp = dataStream[VSS_MPH + payloadOffset];
-    softSerial.print((String)"MPH: " + temp);
-    softSerial.print("\t");
-  
-    // Calculate Throttle position sensor percent
-    temp = dataStream[TPS_P + payloadOffset];
-    softSerial.print((String)"TPS %: " + temp);
-    softSerial.print("\t");
-
-    // Calculate Manifold air pressure
-    temp = (float)(dataStream[MAP_KPA + payloadOffset] * 0.5f);
-    softSerial.print((String)"MAP Kpa: " + temp);
-    softSerial.print("\t");
-
-    // Calculate Air fuel reatio target
-    temp = dataStream[AFR_TARGET + payloadOffset];
-    softSerial.print((String)"AFR Target: " + temp) / 10.0f;
-    softSerial.print("\t");
-
-    temp = dataStream[RICH_LEAN + payloadOffset];
-    softSerial.print((String)"Rich/Lean: " + temp);
-    softSerial.print("\t");
+    if (dataReady) {
     
-    // Calculate coolant temperature C
-    temp = (float)dataStream[CTS + payloadOffset] * 0.75f - 40.0f;
-    softSerial.print((String)"CTS C: " + temp);
-    softSerial.print("\t");
+      float temp;
 
-    // Calculate coolant temperature F
-    temp = (float)dataStream[CTS + payloadOffset] * 1.35f - 40.0f;
-    softSerial.print((String)"CTS F: " + temp);
-    softSerial.print("\t");
+       // Calculate RPM
+      temp = dataStream[RPM_MSB + payloadOffset];
+      temp += dataStream[RPM_LSB + payloadOffset] * 10;
+      softSerial.print((String)"RPM: " + temp);
+      softSerial.print("\t");
 
-    // Calculate Battery voltage
-    temp = (float)dataStream[BATT_V + payloadOffset] / 10.0f;
-    softSerial.print((String)"Batt V: " + temp);
-    softSerial.println();
+      //Calculate Desired RPM
+      temp = dataStream[IDLE_DSRD_RPM + payloadOffset] * 25;
+      softSerial.print((String)"RPMd: " +temp);
+      softSerial.print("\t");
   
-  }
-
-  /*
-  void getAldlData(void) {
-    unsigned int watchdog = 0;
-  
-    digitalWrite(rxControl, HIGH);
-    serialWriteBuff(mode1, mode1Length);
-    digitalWrite(rxControl, LOW);
+      // Calculate MPH
+      temp = dataStream[VSS_MPH + payloadOffset];
+      softSerial.print((String)"MPH: " + temp);
+      softSerial.print("\t");
     
-    for (unsigned char i = 0; i < dataStreamLength; i++) {
-      watchdog = 0;
+      // Calculate Throttle position sensor percent
+      temp = dataStream[TPS_P + payloadOffset];
+      softSerial.print((String)"TPS%: " + temp);
+      softSerial.print("\t");
   
-      while (!(UCSR0A & (1 << RXC0)) && (watchdog < watchdogTimeout)) {
-        watchdog++;
-      }
+      // Calculate Manifold air pressure
+      temp = (float)(dataStream[MAP_KPA + payloadOffset] * 0.5f);
+      softSerial.print((String)"MAP: " + temp);
+      softSerial.print("\t");
   
-      if (watchdog >= watchdogTimeout) {
-        dataStream[i] = 0;
-      } else {
-        dataStream[i] = UDR0;
-      }
-    }
-    digitalWrite(rxControl, HIGH);
-  }
+      // Calculate Air fuel reatio target
+      temp = dataStream[AFR_TARGET + payloadOffset];
+      softSerial.print((String)"AFRt: " + temp) / 10.0f;
+      softSerial.print("\t");
+  
+      temp = dataStream[RICH_LEAN + payloadOffset];
+      softSerial.print((String)"R/L: " + temp);
+      softSerial.print("\t");
+      
+      // Calculate coolant temperature C
+      temp = (float)dataStream[CTS + payloadOffset] * 0.75f - 40.0f;
+      softSerial.print((String)"CTSc: " + temp);
+      softSerial.print("\t");
+  
+      // Calculate coolant temperature F
+      temp = (float)dataStream[CTS + payloadOffset] * 1.35f - 40.0f;
+      softSerial.print((String)"CTSf: " + temp);
+      softSerial.print("\t");
+  
+      // Calculate Battery voltage
+      temp = (float)dataStream[BATT_V + payloadOffset] / 10.0f;
+      softSerial.print((String)"BATv: " + temp);
+      softSerial.print("\t");
 
-  
-  void serialInit(unsigned long baud)
-  {
-    //Calculate baud register values
-    uint16_t baud_setting = (F_CPU / 4 / baud - 1) / 2;
-  
-    //Set baudRate registers
-    UBRR0H = baud_setting >> 8;
-    UBRR0L = baud_setting;
-  
-    //Setup 2x speed
-    UCSR0A = 1 << U2X0;
-  
-    // Enable receive pin
-    UCSR0B = (1 << RXEN0) | (1 << TXEN0);
-  
-    // Set the USART to asynchronous at 8 bits no parity and 1 stop bits
-    UCSR0C = (0 << UMSEL01) | (0 << UMSEL00) | (0 << UPM01) | (0 << UPM00) | (0 << USBS0) | (1 << UCSZ01) | (1 << UCSZ00) | (0 << UCPOL0);
-  }
-
-  
-  void serialWriteBuff(unsigned char data[], unsigned int len) {
-    for (unsigned int i = 0; i < len; i++) {
-      while (!(UCSR0A & (1 << UDRE0)));
-      UDR0 = data[i];
-      while (!(UCSR0A & (1 << UDRE0)));
+      // Calcualte engine runtime
+      temp = dataStream[ENG_RUN_MSB_SEC + payloadOffset];
+      temp += dataStream[ENG_RUN_LSB_SEC + payloadOffset];
+      softSerial.print((String)"RNTs: " + temp);
+      softSerial.println();
     }
   }
-  */
+  
