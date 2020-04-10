@@ -1,4 +1,4 @@
-#include "DataStreamDefs.h"
+  #include "DataStreamDefs.h"
   #include <SoftwareSerial.h>
   
   int rxControl = 13;
@@ -21,7 +21,8 @@
   SoftwareSerial softSerial(2, 3); // RX, TX
   
   void setup() {
-    serialInit(baudRate);
+    //serialInit(baudRate);
+    Serial.begin(baudRate);
     softSerial.begin(8192);
     pinMode(rxControl, OUTPUT);
   }
@@ -30,6 +31,27 @@
   void loop() {
     getAldlData();
     processData();
+  }
+
+
+  void getAldlData(void) {
+    unsigned int watchdog = 0;
+  
+    digitalWrite(rxControl, HIGH);
+    Serial.write(mode1, mode1Length);
+    Serial.flush();
+    digitalWrite(rxControl, LOW);
+  
+      while ((Serial.available() == 0) && (watchdog < watchdogTimeout)) {
+        watchdog++;
+      }
+  
+      if (watchdog >= watchdogTimeout) {
+        softSerial.println("[!] Watchdog Timeout");
+      } else {
+        Serial.readBytes(dataStream, dataStreamLength);
+      }
+    digitalWrite(rxControl, HIGH);
   }
   
   
@@ -84,7 +106,7 @@
   
   }
 
-  
+  /*
   void getAldlData(void) {
     unsigned int watchdog = 0;
   
@@ -136,3 +158,4 @@
       while (!(UCSR0A & (1 << UDRE0)));
     }
   }
+  */
