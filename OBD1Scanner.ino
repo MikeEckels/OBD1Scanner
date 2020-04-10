@@ -65,6 +65,7 @@
 
     temp = dataStream[RICH_LEAN + payloadOffset];
     softSerial.print((String)"Rich/Lean: " + temp);
+    softSerial.print("\t");
     
     // Calculate coolant temperature C
     temp = (float)dataStream[CTS + payloadOffset] * 0.75f - 40.0f;
