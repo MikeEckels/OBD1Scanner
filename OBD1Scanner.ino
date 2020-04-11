@@ -1,7 +1,7 @@
   #include "DataStreamDefs.h"
   #include <SoftwareSerial.h>
 
-  int rxControl = 13;
+  int rxControl = 4;
   bool dataReady = false;
   
   unsigned long baudRate = 8192;
@@ -26,7 +26,7 @@
   
   void loop() {
     unsigned char *stream = getAldlData(mode1, mode1Length);
-    processData(stream);
+    processMode1Data(stream);
   }
 
 
@@ -55,8 +55,7 @@
   }
   
   
-  void processData(unsigned char *data)
-  {
+  void processMode1Data(unsigned char *data) {
     if (dataReady) {
     
       float temp;
@@ -118,4 +117,12 @@
       softSerial.println();
     }
   }
+
+//  void processMode2Data(unsigned char *data) {
+//    if (dataReady) {
+//      int temp;
+//
+//      temp = 
+//    }
+//  }
   
