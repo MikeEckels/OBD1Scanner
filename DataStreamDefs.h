@@ -3,7 +3,14 @@
 
   //Arduino clock frequency
   #define F_CPU               16000000L
-  
+
+  //Length in bytes of vechicles data stream
+  #define DATA_LEN            44
+
+  //Num of bytes before actual data in the stream
+  //3 in old design. Something weird with Serial1.readBytes();
+  #define DATA_OFFSET         2
+
   //Defines each byte in the mode1 data stream
   #define CTS                 4 //Coolant temp raw
   #define BATT_V              5 //Battery voltage
