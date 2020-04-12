@@ -25,14 +25,14 @@
 
   
   void loop() {
-    unsigned char *stream = getAldlData(mode1, mode1Length);
-    processMode1Data(stream);
+    unsigned char dataStream[DATA_LEN];
+    getAldlData(mode1, mode1Length, dataStream);
+    processMode1Data(dataStream);
   }
 
 
-  unsigned char* getAldlData(unsigned char *cmd, int cmdLength) {
+  void getAldlData(unsigned char *cmd, unsigned int cmdLength, unsigned char *data) {
     unsigned int watchdog = 0;
-    unsigned char dataStream[DATA_LEN];
   
     digitalWrite(rxControl, HIGH);
     Serial1.write(cmd, cmdLength);
@@ -47,11 +47,10 @@
         softSerial.println("[!] Watchdog Timeout");
         dataReady = false;
       } else {
-          Serial1.readBytes(dataStream, DATA_LEN);
+          Serial1.readBytes(data, DATA_LEN);
           dataReady = true;
       }
     digitalWrite(rxControl, HIGH);
-    return dataStream;
   }
   
   
