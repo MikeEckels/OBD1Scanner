@@ -26,8 +26,10 @@
   
   void loop() {
     unsigned char dataStream[DATA_LEN];
-    getAldlData(mode1, mode1Length, dataStream);
-    processMode1Data(dataStream);
+    //getAldlData(mode1, mode1Length, dataStream);
+    getALDLData(mode2, mode2Length, dataStream);
+    //processMode1Data(dataStream);
+    processMode2Data(dataStream);
   }
 
 
@@ -117,11 +119,61 @@
     }
   }
 
-//  void processMode2Data(unsigned char *data) {
-//    if (dataReady) {
-//      int temp;
-//
-//      temp = 
-//    }
-//  }
+  void processMode2Data(unsigned char *data) {
+    if (dataReady) {
+      int temp;
+
+      temp = data[VIN1 + DATA_OFFSET];
+      softSerial.print((String)"VIN #: " + temp);
+
+      temp = data[VIN2 + DATA_OFFSET];
+      softSerial.print(temp);
+
+      temp = data[VIN3 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN4 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN5 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN6 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN7 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN8 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN9 + DATA_OFFSET];
+      softSerial.print(temp);
+
+      temp = data[VIN10 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN11 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN12 + DATA_OFFSET];
+      softSerial.print(temp);
+
+      temp = data[VIN13 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN14 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN15 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN16 + DATA_OFFSET];
+      softSerial.print(temp); 
+
+      temp = data[VIN17 + DATA_OFFSET];
+      softSerial.print(temp); 
+      softSrial.pritnln();
+    }
+  }
   
