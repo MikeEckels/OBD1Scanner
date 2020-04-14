@@ -31,12 +31,17 @@
     
     unsigned char rawDataStream1[DATA_STREAM_LEN];
     unsigned char rawDataStream2[DATA_STREAM_LEN];
-    
+
+    // Not recommended to call both mode1 and mode2 commands consecutively, but it does work.
     getAldlData(mode1Cmd, mode1CmdLength, rawDataStream1);
-    getAldlData(mode2Cmd, mode2CmdLength, rawDataStream2);
     processMode1Data(rawDataStream1, &stream1);
+    displayData1(&stream1);
+
+/*
+    getAldlData(mode2Cmd, mode2CmdLength, rawDataStream2);
     processMode2Data(rawDataStream2, &stream2);
-    displayData(&stream1, &stream2);
+    displayData2(&stream2);
+*/
   }
 
 
@@ -120,48 +125,91 @@
       
     }
   }
+  
 
-  void displayData(struct mode1Data *processedData1, struct mode2Data *processedData2) {
-
-      softSerial.print((String)"RPM: " + processedData1->RPM);
+  void displayData1(struct mode1Data *processedData) {
+    
+    if (dataReady) {
+      
+      //PRINTING MODE1 DATA
+      softSerial.print((String)"RPM: " + processedData->RPM);
       softSerial.print("\t");
 
-      softSerial.print((String)"RPMd: " + processedData1->desiredIdle);
+      softSerial.print((String)"RPMd: " + processedData->desiredIdle);
       softSerial.print("\t");
   
-      softSerial.print((String)"MPH: " + processedData1->vehicleSpeed);
+      softSerial.print((String)"MPH: " + processedData->vehicleSpeed);
       softSerial.print("\t");
     
-      softSerial.print((String)"TPS%: " + processedData1->throttlePercent);
+      softSerial.print((String)"TPS%: " + processedData->throttlePercent);
       softSerial.print("\t");
   
-      softSerial.print((String)"MAP: " + processedData1->MAP);
+      softSerial.print((String)"MAP: " + processedData->MAP);
       softSerial.print("\t");
   
-      softSerial.print((String)"AFRt: " + processedData1->targetAFR);
+      softSerial.print((String)"AFRt: " + processedData->targetAFR);
       softSerial.print("\t");
   
-      softSerial.print((String)"R/L: " + processedData1->exhaustTransitions);
+      softSerial.print((String)"R/L: " + processedData->exhaustTransitions);
       softSerial.print("\t");
       
-      softSerial.print((String)"CTSc: " + processedData1->coolantTempC);
+      softSerial.print((String)"CTSc: " + processedData->coolantTempC);
       softSerial.print("\t");
   
-      softSerial.print((String)"CTSf: " + processedData1->coolantTempF);
+      softSerial.print((String)"CTSf: " + processedData->coolantTempF);
       softSerial.print("\t");
   
-      softSerial.print((String)"BATv: " + processedData1->batteryVoltage);
+      softSerial.print((String)"BATv: " + processedData->batteryVoltage);
       softSerial.print("\t");
 
-      softSerial.print((String)"RNTs: " + processedData1->engineRuntime);
+      softSerial.print((String)"RNTs: " + processedData->engineRuntime);
+      softSerial.println();
+    }
+  }
+
+
+  void displayData2(struct mode2Data *processedData) {
+    
+    if (dataReady) {
+
+      //PRINTIG MODE2 DATA
+      softSerial.print((String)"O2Cal1: " + processedData->oxygenCal1);
       softSerial.print("\t");
 
+      softSerial.print((String)"O2Cal2: " + processedData->oxygenCal2);
+      softSerial.print("\t");
+
+      softSerial.print((String)"ENGCal1: " + processedData->engineCal1);
+      softSerial.print("\t");
+
+      softSerial.print((String)"ENGCal2: " + processedData->engineCal2);
+      softSerial.print("\t");
+
+      softSerial.print((String)"SPDCal1: " + processedData->speedoCal1);
+      softSerial.print("\t");
+
+      softSerial.print((String)"SPDCal2: " + processedData->speedoCal2);
+      softSerial.print("\t");
+
+      softSerial.print((String)"EBCMCal1: " + processedData->EBCMcal1);
+      softSerial.print("\t");
+
+      softSerial.print((String)"EBCMCal2: " + processedData->EBCMcal2);
+      softSerial.print("\t");
+
+      softSerial.print((String)"HVACCal1: " + processedData->HVACcal1);
+      softSerial.print("\t");
+
+      softSerial.print((String)"HVACCal2: " + processedData->HVACcal2);
+      softSerial.print("\t");
+
+      
       softSerial.print("VIN: ");
-      
-      for (unsigned int i = 0; i < VIN_LEN; i++) {
-        softSerial.print(processedData2->VIN[i]);
+            for (unsigned int i = 0; i < VIN_LEN; i++) {
+        softSerial.print((char)processedData->VIN[i]);
       }
       softSerial.println();
+    }
   }
 
   
