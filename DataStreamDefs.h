@@ -5,7 +5,8 @@
   #define F_CPU               16000000L
 
   //Length in bytes of vechicles data stream
-  #define DATA_LEN            44
+  #define DATA_STREAM_LEN     44
+  #define VIN_LEN             17
 
   //Num of bytes before actual data in the stream
   //3 in old design. Something weird with Serial1.readBytes();
@@ -89,5 +90,55 @@
   #define VIN15               35
   #define VIN16               36
   #define VIN17               37
+
+
+  struct mode1Data {
+    float MAP;
+    float fuelBPW;
+    float targetAFR;
+    float AFRtimeout;
+    float coolantTempF;
+    float coolantTempC;
+    float startCoolantTempF;
+    float startCoolantTempC;
+    float batteryVoltage;
+    float knockRetard;
+    float ESCactivity;
+    float sparkAdvance;
+    float asyncPulseWidth;
+    float referencePulseTime;
+    float barometric;
+    float EGRdutyCycle;
+    float fuelPumpVoltage;
+    float throttleVoltage;
+    
+    unsigned char throttlePercent;
+    unsigned char vehicleSpeed;
+    unsigned char fuelINT;
+    unsigned char fuelBLM;
+    unsigned char fuelBLMcell;
+    unsigned char oxygenSensor;
+    unsigned char exhaustTransitions;
+    unsigned char IACposition;
+    unsigned char desiredIACposition;
+    
+    unsigned short RPM;
+    unsigned short desiredIdle;
+    unsigned short engineRuntime;
+  };
+
+  struct mode2Data {
+    unsigned short oxygenCal1;
+    unsigned short oxygenCal2;
+    unsigned short engineCal1;
+    unsigned short engineCal2;
+    unsigned short speedoCal1;
+    unsigned short speedoCal2;
+    unsigned short EBCMcal1;
+    unsigned short EBCMcal2;
+    unsigned short HVACcal1;
+    unsigned short HVACcal2;
+    unsigned char VIN[VIN_LEN];
+  };
               
   

@@ -5,15 +5,16 @@
   bool dataReady = false;
   
   unsigned long baudRate = 8192;
-  
-  unsigned char mode1[] = {0xF4, 0x57, 0x01, 0x00, 0xB4};
-  unsigned char mode2[] = {0xF4, 0x57, 0x01, 0x01, 0xB3};
-  unsigned char clearCodes[] = {0xF4, 0x56, 0x0A, 0xAC};
+
+  //message ID, length, mode type, unknown, 2's compliment checksum
+  unsigned char mode1Cmd[] = {0xF4, 0x57, 0x01, 0x00, 0xB4};
+  unsigned char mode2Cmd[] = {0xF4, 0x57, 0x01, 0x01, 0xB3};
+  unsigned char clearCodesCmd[] = {0xF4, 0x56, 0x0A, 0xAC};
   
   unsigned int watchdogTimeout = 12000;
-  unsigned int mode1Length = sizeof(mode1) / sizeof(mode1[0]);
-  unsigned int mode2Length = sizeof(mode2) / sizeof(mode2[0]);
-  unsigned int clearCodesLength = sizeof(clearCodes) / sizeof(clearCodes[0]);
+  unsigned int mode1CmdLength = sizeof(mode1Cmd) / sizeof(mode1Cmd[0]);
+  unsigned int mode2CmdLength = sizeof(mode2Cmd) / sizeof(mode2Cmd[0]);
+  unsigned int clearCodesCmdLength = sizeof(clearCodesCmd) / sizeof(clearCodesCmd[0]);
   
   SoftwareSerial softSerial(2, 3); // RX, TX
   
@@ -25,15 +26,21 @@
 
   
   void loop() {
-    unsigned char dataStream[DATA_LEN];
-    //getAldlData(mode1, mode1Length, dataStream);
-    getAldlData(mode2, mode2Length, dataStream);
-    //processMode1Data(dataStream);
-    processMode2Data(dataStream);
+    struct mode1Data stream1;
+    struct mode2Data stream2;
+    
+    unsigned char rawDataStream1[DATA_STREAM_LEN];
+    unsigned char rawDataStream2[DATA_STREAM_LEN];
+    
+    getAldlData(mode1Cmd, mode1CmdLength, rawDataStream1);
+    getAldlData(mode2Cmd, mode2CmdLength, rawDataStream2);
+    processMode1Data(rawDataStream1, &stream1);
+    processMode2Data(rawDataStream2, &stream2);
+    displayData(&stream1, &stream2);
   }
 
 
-  void getAldlData(unsigned char *cmd, unsigned int cmdLength, unsigned char *data) {
+  void getAldlData(unsigned char *cmd, unsigned int cmdLength, unsigned char *dataBuffer) {
     unsigned int watchdog = 0;
   
     digitalWrite(rxControl, HIGH);
@@ -49,131 +56,112 @@
         softSerial.println("[!] Watchdog Timeout");
         dataReady = false;
       } else {
-          Serial1.readBytes(data, DATA_LEN);
+          Serial1.readBytes(dataBuffer, DATA_STREAM_LEN);
           dataReady = true;
       }
     digitalWrite(rxControl, HIGH);
   }
   
   
-  void processMode1Data(unsigned char *data) {
+  void processMode1Data(unsigned char *data, struct mode1Data *mode1) {
     if (dataReady) {
-    
-      float temp;
 
-       // Calculate RPM
-      temp = data[RPM_MSB + DATA_OFFSET];
-      temp += data[RPM_LSB + DATA_OFFSET] * 10;
-      softSerial.print((String)"RPM: " + temp);
+      mode1->coolantTempF = data[CTS + DATA_OFFSET] * 1.35f - 40.0f;
+      mode1->coolantTempC = data[CTS + DATA_OFFSET] * 0.75f - 40.0f;
+      mode1->batteryVoltage = data[BATT_V + DATA_OFFSET] / 10.0f;
+      mode1->throttleVoltage = data[TPS_V + DATA_OFFSET] / 10.0f;
+      mode1->throttlePercent = data[TPS_P + DATA_OFFSET];
+      mode1->MAP = data[MAP_KPA + DATA_OFFSET] * 0.5f;
+      mode1->vehicleSpeed = data[VSS_MPH + DATA_OFFSET];
+      mode1->targetAFR = data[AFR_TARGET + DATA_OFFSET] / 10.0f;
+      mode1->fuelINT = data[INT + DATA_OFFSET];
+      mode1->fuelBLM = data[BLM + DATA_OFFSET];
+      mode1->fuelBLMcell = data[BLM_CELL + DATA_OFFSET];
+      mode1->fuelBPW = ((data[BPW_MSB_MSEC + DATA_OFFSET]) + (data[BPW_LSB_MSEC + DATA_OFFSET])) * 0.015259;
+      mode1->oxygenSensor = data[O2S_MV + DATA_OFFSET] * 5;
+      mode1->desiredIdle = data[IDLE_DSRD_RPM + DATA_OFFSET] * 25;
+      mode1->EGRdutyCycle = data[EGR_PWM_P + DATA_OFFSET] * 0.5f;
+      mode1->IACposition = data[IAC_POS_STEPS + DATA_OFFSET];
+      mode1->exhaustTransitions = data[RICH_LEAN + DATA_OFFSET];
+      mode1->sparkAdvance = ((data[SPRK_ADV_MSB + DATA_OFFSET]) + (data[SPRK_ADV_LSB + DATA_OFFSET])) * 0.062500f;
+      mode1->RPM = ((data[RPM_MSB + DATA_OFFSET]) + (data[RPM_LSB + DATA_OFFSET])) * 10;
+      mode1->engineRuntime = ((data[ENG_RUN_MSB_SEC + DATA_OFFSET]) + (data[ENG_RUN_LSB_SEC + DATA_OFFSET]));
+      mode1->fuelPumpVoltage = data[FUEL_PUMP_V + DATA_OFFSET] / 10.0f;
+      mode1->startCoolantTempF = data[STRT_CTS + DATA_OFFSET] * 1.35f - 40.0f;
+      mode1->startCoolantTempC = data[STRT_CTS + DATA_OFFSET] * 0.75f - 40.0f;
+      mode1->desiredIACposition = data[IAC_DSRD_POS_STEPS + DATA_OFFSET];
+      mode1->referencePulseTime = ((data[REF_PULS_MSB_MSEC + DATA_OFFSET]) + (data[REF_PULS_LSB_MSEC + DATA_OFFSET])) * 0.02f;
+      mode1->ESCactivity = ((data[ESC_ACTVTY_MSB_SEC + DATA_OFFSET]) + (data[ESC_ACTVTY_LSB_SEC + DATA_OFFSET])) * 0.02f;
+      mode1->knockRetard = ((data[KNOCK_RETARD_MSB + DATA_OFFSET]) + (data[KNOCK_RETARD_LSB + DATA_OFFSET])) * 0.0625f;
+      mode1->asyncPulseWidth = ((data[ASYNC_PW_MSB_MSEC + DATA_OFFSET]) + (data[ASYNC_PW_LSB_MSEC + DATA_OFFSET])) / 10.0f;
+      mode1->AFRtimeout = data[AFR_TIMEOUT + DATA_OFFSET] / 10.0f;
+      mode1->barometric = data[BAROMETRIC_KPA + DATA_OFFSET] * 0.5f;
+    }
+  }
+
+
+  void processMode2Data(unsigned char *data, struct mode2Data *mode2) {
+    if (dataReady) {
+
+      mode2->oxygenCal1 = ((data[OS_CAL1_MSB + DATA_OFFSET]) + (data[OS_CAL1_LSB + DATA_OFFSET]));
+      mode2->oxygenCal2 = ((data[OS_CAL2_MSB + DATA_OFFSET]) + (data[OS_CAL2_LSB + DATA_OFFSET]));
+      mode2->engineCal1 = ((data[ENG_CAL1_MSB + DATA_OFFSET]) + (data[ENG_CAL1_LSB + DATA_OFFSET]));
+      mode2->engineCal2 = ((data[ENG_CAL2_MSB + DATA_OFFSET]) + (data[ENG_CAL2_LSB + DATA_OFFSET]));
+      mode2->speedoCal1 = ((data[SPEDO_CAL1_MSB + DATA_OFFSET]) + (data[SPEDO_CAL1_LSB + DATA_OFFSET]));
+      mode2->speedoCal2 = ((data[SPEDO_CAL2_MSB + DATA_OFFSET]) + (data[SPEDO_CAL2_LSB + DATA_OFFSET]));
+      mode2->EBCMcal1 = ((data[EBCM_CAL1_MSB + DATA_OFFSET]) + (data[EBCM_CAL1_LSB + DATA_OFFSET]));
+      mode2->EBCMcal2 = ((data[EBCM_CAL2_MSB + DATA_OFFSET]) + (data[EBCM_CAL2_LSB + DATA_OFFSET]));
+      mode2->HVACcal1 = ((data[HVAC_CAL1_MSB + DATA_OFFSET]) + (data[HVAC_CAL1_LSB + DATA_OFFSET]));
+      mode2->HVACcal2 = ((data[HVAC_CAL2_MSB + DATA_OFFSET]) + (data[HVAC_CAL2_LSB + DATA_OFFSET]));
+
+      for (unsigned int i = 0; i < VIN_LEN; i++) {
+        mode2->VIN[i] = data[(VIN1 + DATA_OFFSET) + i];
+      }
+      
+    }
+  }
+
+  void displayData(struct mode1Data *processedData1, struct mode2Data *processedData2) {
+
+      softSerial.print((String)"RPM: " + processedData1->RPM);
       softSerial.print("\t");
 
-      //Calculate Desired RPM
-      temp = data[IDLE_DSRD_RPM + DATA_OFFSET] * 25;
-      softSerial.print((String)"RPMd: " +temp);
+      softSerial.print((String)"RPMd: " + processedData1->desiredIdle);
       softSerial.print("\t");
   
-      // Calculate MPH
-      temp = data[VSS_MPH + DATA_OFFSET];
-      softSerial.print((String)"MPH: " + temp);
+      softSerial.print((String)"MPH: " + processedData1->vehicleSpeed);
       softSerial.print("\t");
     
-      // Calculate Throttle position sensor percent
-      temp = data[TPS_P + DATA_OFFSET];
-      softSerial.print((String)"TPS%: " + temp);
+      softSerial.print((String)"TPS%: " + processedData1->throttlePercent);
       softSerial.print("\t");
   
-      // Calculate Manifold air pressure
-      temp = (float)(data[MAP_KPA + DATA_OFFSET] * 0.5f);
-      softSerial.print((String)"MAP: " + temp);
+      softSerial.print((String)"MAP: " + processedData1->MAP);
       softSerial.print("\t");
   
-      // Calculate Air fuel reatio target
-      temp = data[AFR_TARGET + DATA_OFFSET];
-      softSerial.print((String)"AFRt: " + temp) / 10.0f;
+      softSerial.print((String)"AFRt: " + processedData1->targetAFR);
       softSerial.print("\t");
   
-      temp = data[RICH_LEAN + DATA_OFFSET];
-      softSerial.print((String)"R/L: " + temp);
+      softSerial.print((String)"R/L: " + processedData1->exhaustTransitions);
       softSerial.print("\t");
       
-      // Calculate coolant temperature C
-      temp = (float)data[CTS + DATA_OFFSET] * 0.75f - 40.0f;
-      softSerial.print((String)"CTSc: " + temp);
+      softSerial.print((String)"CTSc: " + processedData1->coolantTempC);
       softSerial.print("\t");
   
-      // Calculate coolant temperature F
-      temp = (float)data[CTS + DATA_OFFSET] * 1.35f - 40.0f;
-      softSerial.print((String)"CTSf: " + temp);
+      softSerial.print((String)"CTSf: " + processedData1->coolantTempF);
       softSerial.print("\t");
   
-      // Calculate Battery voltage
-      temp = (float)data[BATT_V + DATA_OFFSET] / 10.0f;
-      softSerial.print((String)"BATv: " + temp);
+      softSerial.print((String)"BATv: " + processedData1->batteryVoltage);
       softSerial.print("\t");
 
-      // Calcualte engine runtime
-      temp = data[ENG_RUN_MSB_SEC + DATA_OFFSET];
-      temp += data[ENG_RUN_LSB_SEC + DATA_OFFSET];
-      softSerial.print((String)"RNTs: " + temp);
+      softSerial.print((String)"RNTs: " + processedData1->engineRuntime);
+      softSerial.print("\t");
+
+      softSerial.print("VIN: ");
+      
+      for (unsigned int i = 0; i < VIN_LEN; i++) {
+        softSerial.print(processedData2->VIN[i]);
+      }
       softSerial.println();
-    }
   }
 
-  void processMode2Data(unsigned char *data) {
-    if (dataReady) {
-      char temp;
-
-      temp = data[VIN1 + DATA_OFFSET];
-      softSerial.print((String)"VIN #: " + temp);
-
-      temp = data[VIN2 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN3 + DATA_OFFSET];
-      softSerial.print(temp); 
-
-      temp = data[VIN4 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN5 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN6 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN7 + DATA_OFFSET];
-      softSerial.print(temp); 
-
-      temp = data[VIN8 + DATA_OFFSET];
-      softSerial.print(temp); 
-
-      temp = data[VIN9 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN10 + DATA_OFFSET];
-      softSerial.print(temp); 
-
-      temp = data[VIN11 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN12 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN13 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN14 + DATA_OFFSET];
-      softSerial.print(temp); 
-
-      temp = data[VIN15 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN16 + DATA_OFFSET];
-      softSerial.print(temp);
-
-      temp = data[VIN17 + DATA_OFFSET];
-      softSerial.print(temp); 
-      softSerial.println();
-    }
-  }
   
